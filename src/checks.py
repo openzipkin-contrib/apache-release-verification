@@ -216,7 +216,11 @@ def check_no_binary_files(state: State) -> Optional[str]:
 
 
 def check_build_and_test(state: State) -> Optional[str]:
-    return _check_sh("mvn -N io.takari:maven:wrapper -Dmaven=3.6.0 && ./mvnw --quiet package", workdir=state.source_dir)
+    return _check_sh(
+        "mvn --quiet -N io.takari:maven:wrapper -Dmaven=3.6.0 && "
+        "./mvnw --quiet package",
+        workdir=state.source_dir
+    )
 
 
 checks = [
