@@ -1,3 +1,5 @@
+import filecmp
+import logging
 import os
 from typing import Callable, List, Optional, Union
 
@@ -159,8 +161,72 @@ def check_base_dir_in_zip(state: State) -> Optional[str]:
     return _check_sh(f"test -d {state.source_dir}")
 
 
+def _check_dircmp_expected_top_level_diffs(diff: filecmp.dircmp) -> [str]:
+    expected_top_level_git_only = {
+        ".git",
+        ".gitignore",
+        ".mvn",
+        "mvnw",
+        "mvnw.cmd",
+        "Jenkinsfile",
+    }
+    if set(diff.left_only) != expected_top_level_git_only:
+        return [
+            "Expected exactly the below files to be only in the git checkout, "
+            "but not in the source release:\n"
+            + " ".join(expected_top_level_git_only)
+            + "\n"
+            "but instead found these:\n" + " ".join(diff.left_only)
+        ]
+    return []
+
+
+def _check_dircmp_only_either_allowed(diff: filecmp.dircmp) -> [str]:
+    errors = []
+    allowed_left_only = [".gitignore"]
+    allowed_right_only = []
+    # Check files only in the git checkout
+    for filename in diff.left_only:
+        if filename not in allowed_left_only:
+            errors.append(
+                os.path.join(diff.left, filename) + " is only in the git checkout"
+            )
+    # Check files only in the source archive
+    for filename in diff.right_only:
+        if filename not in allowed_right_only:
+            errors.append(
+                os.path.join(diff.right, filename) + " is only in the source archive"
+            )
+    # And recurse into subdirectories
+    for subdiff in diff.subdirs.values():
+        errors += _check_dircmp_only_either_allowed(subdiff)
+    return errors
+
+
+def _check_dircmp_no_diff_files(diff: filecmp.dircmp) -> [str]:
+    errors = []
+    if diff.diff_files:
+        errors += "The contents of the following files differ: " + " ".join(
+            diff.diff_files
+        )
+    for subdiff in diff.subdirs.values():
+        errors += _check_dircmp_no_diff_files(subdiff)
+    return errors
+
+
+def _check_dircmp_no_funny_files(diff: filecmp.dircmp) -> [str]:
+    errors = []
+    if diff.funny_files:
+        errors += "Failed to compare contents of the following files: " + " ".join(
+            diff.diff_files
+        )
+    for subdiff in diff.subdirs.values():
+        errors += _check_dircmp_no_diff_files(subdiff)
+    return errors
+
+
 def check_git_revision(state: State) -> Optional[str]:
-    return _check_sh(
+    sh_result = _check_sh(
         [
             (
                 f"git clone https://github.com/apache/{state.git_repo_name} "
@@ -171,14 +237,36 @@ def check_git_revision(state: State) -> Optional[str]:
                 f"--git-dir {state.git_dir}/.git "
                 f"checkout --quiet {state.git_hash}"
             ),
-            (
-                f"diff --recursive {state.git_dir} {state.source_dir} "
-                "--exclude DEPENDENCIES --exclude NOTICE --exclude .git "
-                "--exclude .gitignore --exclude Jenkinsfile --exclude .mvn "
-                "--exclude mvnw --exclude mvnw.cmd"
-            ),
         ]
     )
+    if sh_result is not None:
+        return sh_result
+
+    logging.info("NOTE: The following diff output is only informational.")
+    logging.info("NOTE: The actual verification is done in Python.")
+    sh(f"diff --recursive {state.git_dir} {state.source_dir}")
+
+    diff = filecmp.dircmp(state.git_dir, state.source_dir, ignore=[])
+    errors = []
+
+    # First, make sure that on the top level of the source tree we find exactly
+    # the differences we expect
+    errors += _check_dircmp_expected_top_level_diffs(diff)
+
+    # Then check that any other files that appear in only one tree
+    # are allowed
+    for subdiff in diff.subdirs.values():
+        errors += _check_dircmp_only_either_allowed(subdiff)
+
+    # Then make sure that all files that exist in both places have no diff
+    errors += _check_dircmp_no_diff_files(diff)
+    # And finally that there we could compare all the files
+    errors += _check_dircmp_no_funny_files(diff)
+
+    if errors:
+        errors.append("See above for a full output of diff.")
+        return "\n\n".join(errors)
+    return None
 
 
 def _check_file_looks_good(path: str) -> Optional[str]:
