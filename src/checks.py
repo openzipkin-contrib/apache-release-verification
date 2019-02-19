@@ -219,7 +219,6 @@ def check_build_and_test(state: State) -> Optional[str]:
     return _check_sh(
         [
             "mvn --quiet -N io.takari:maven:wrapper -Dmaven=3.6.0",
-            "./mvnw --quiet test",
             "./mvnw --quiet package"
         ],
         workdir=state.source_dir
