@@ -259,7 +259,7 @@ def check_blacklisted_files(state: State) -> Optional[str]:
         "mvnw.cmd",
         "Jenkinsfile",
     ]
-    commands = [f"test ! -e {os.path.join(state.source_dir, path)}" for path in blacklist]
+    commands = [f"test $(find {state.source_dir} -name {item} | wc -l) -eq 0" for item in blacklist]
     return _check_sh(commands)
 
 
