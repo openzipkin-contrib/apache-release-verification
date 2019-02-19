@@ -161,29 +161,16 @@ def check_base_dir_in_zip(state: State) -> Optional[str]:
     return _check_sh(f"test -d {state.source_dir}")
 
 
-def _check_dircmp_expected_top_level_diffs(diff: filecmp.dircmp) -> [str]:
-    expected_top_level_git_only = {
+def _check_dircmp_only_either_allowed(diff: filecmp.dircmp) -> [str]:
+    errors = []
+    allowed_left_only = [
         ".git",
         ".gitignore",
         ".mvn",
         "mvnw",
         "mvnw.cmd",
         "Jenkinsfile",
-    }
-    if set(diff.left_only) != expected_top_level_git_only:
-        return [
-            "Expected exactly the below files to be only in the git checkout, "
-            "but not in the source release:\n"
-            + " ".join(expected_top_level_git_only)
-            + "\n"
-            "but instead found these:\n" + " ".join(diff.left_only)
-        ]
-    return []
-
-
-def _check_dircmp_only_either_allowed(diff: filecmp.dircmp) -> [str]:
-    errors = []
-    allowed_left_only = [".gitignore"]
+    ]
     allowed_right_only = []
     # Check files only in the git checkout
     for filename in diff.left_only:
@@ -249,14 +236,8 @@ def check_git_revision(state: State) -> Optional[str]:
     diff = filecmp.dircmp(state.git_dir, state.source_dir, ignore=[])
     errors = []
 
-    # First, make sure that on the top level of the source tree we find exactly
-    # the differences we expect
-    errors += _check_dircmp_expected_top_level_diffs(diff)
-
-    # Then check that any other files that appear in only one tree
-    # are allowed
-    for subdiff in diff.subdirs.values():
-        errors += _check_dircmp_only_either_allowed(subdiff)
+    # First, check that any files appearing in only one tree are allowed
+    errors += _check_dircmp_only_either_allowed(diff)
 
     # Then make sure that all files that exist in both places have no diff
     errors += _check_dircmp_no_diff_files(diff)
@@ -267,6 +248,19 @@ def check_git_revision(state: State) -> Optional[str]:
         errors.append("See above for a full output of diff.")
         return "\n\n".join(errors)
     return None
+
+
+def check_blacklisted_files(state: State) -> Optional[str]:
+    blacklist = [
+        ".git",
+        ".gitignore",
+        ".mvn",
+        "mvnw",
+        "mvnw.cmd",
+        "Jenkinsfile",
+    ]
+    commands = [f"test ! -e {os.path.join(state.source_dir, path)}" for path in blacklist]
+    return _check_sh(commands)
 
 
 def _check_file_looks_good(path: str) -> Optional[str]:
@@ -324,6 +318,7 @@ checks = [
     check_unzip,
     check_base_dir_in_zip,
     check_git_revision,
+    check_blacklisted_files,
     check_disclaimer_looks_good,
     check_notice_looks_good,
     check_license_is_apache_2,
