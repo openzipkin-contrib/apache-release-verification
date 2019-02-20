@@ -10,6 +10,7 @@ This is very early days.. you'll need to also manually verify to double-check. E
 ## Just run it!
 
 This requires Docker to be installed on your machine, but nothing else.
+Main idea is you need to look at release VOTE thread and enter a few things:
 
 ```bash
 ./check.sh brave-karaf 0.1.2 --gpg-key BB67A050 --git-hash 3cf4ac6577eb0d4775d20f24814e7a0852fa1635
@@ -39,8 +40,6 @@ $ python src/main.py brave-karaf 0.1.2 --gpg-key BB67A050 --git-hash 3cf4ac6577e
 Install linter, type-checker, and code formatter; run them before committing:
 
 ```bash
-$ cd src
-$ . venv/bin/activate
 $ pip install -r requirements-dev.txt
 $ make
 ```
