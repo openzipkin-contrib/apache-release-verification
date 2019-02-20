@@ -1,7 +1,11 @@
 FROM python:3.7
 
-RUN apt-get update
-RUN apt-get install --yes --no-install-recommends wget git maven less
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends \
+  git \
+  less \
+  maven \
+  wget
 
 ENV JAVA_HOME /usr/lib/jvm/default-java/
 RUN mkdir /root/.gnupg \
