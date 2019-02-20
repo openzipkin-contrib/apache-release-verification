@@ -11,9 +11,9 @@ ENV JAVA_HOME /usr/lib/jvm/default-java/
 RUN mkdir /root/.gnupg \
  && chmod 600 /root/.gnupg
 
-ADD src/requirements.txt /code/
+ADD requirements.txt /code/
 RUN pip3 install -r /code/requirements.txt
 
-ADD src/*.py /code/
+ADD src/ /code/
 
 ENTRYPOINT ["/usr/local/bin/python3", "/code/main.py"]

@@ -27,12 +27,11 @@ A non-complete list (the script will fail when it hits a missing one anyway):
 * maven
 
 ```bash
-$ cd src
 $ virtualenv --python=python3 venv
 $ . venv/bin/activate
 $ pip install -r requirements.txt
 ### and now actually run it!
-$ python main.py brave-karaf 0.1.2 --gpg-key BB67A050 --git-hash 3cf4ac6577eb0d4775d20f24814e7a0852fa1635
+$ python src/main.py brave-karaf 0.1.2 --gpg-key BB67A050 --git-hash 3cf4ac6577eb0d4775d20f24814e7a0852fa1635
 ```
 
 ## Hacking
