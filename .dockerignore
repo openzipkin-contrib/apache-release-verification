@@ -1,10 +1,5 @@
-src/__pycache__
-src/*.pyc
-src/*.pyo
-src/*.pyd
-src/.Python
-src/venv
-src/pip-log.txt
-src/pip-delete-this-directory.txt
-src/.cache
-src/.git
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+*/.Python
