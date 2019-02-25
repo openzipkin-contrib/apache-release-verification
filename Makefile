@@ -1,20 +1,23 @@
-VENV=venv
-PIP_LOG=pip-log.txt
 PRECOMMIT_SRC=.githooks/pre-commit
 PRECOMMIT_DST=.git/hooks/pre-commit
-
-export VIRTUAL_ENV := $(abspath ${VENV})
-export PATH := ${VIRTUAL_ENV}/bin:${PATH}
 
 ${PRECOMMIT_DST}: ${PRECOMMIT_SRC}
 	cp $< $@
 
-${PIP_LOG}: requirements.txt requirements-dev.txt
-	if [[ ! -e ${VENV}/bin/activate ]]; then virtualenv --python=python3 ${VENV}; fi
-	pip install -r requirements.txt -r requirements-dev.txt | tee ${PIP_LOG}
+.PHONY: upgrade-dependencies
+upgrade-dependencies: venv
+	./venv/bin/pip-compile --upgrade requirements.txt
+	./venv/bin/pip-compile --upgrade requirements-dev.txt
 
+.PHONY: venv
+venv:
+	[ -d ./venv ] || virtualenv --python=python3 venv
+	[ -e ./venv/bin/pip-sync ] || ./venv/bin/pip install pip-tools
+	./venv/bin/pip-sync requirements.txt requirements-dev.txt
+
+.DEFAULT_GOAL := setup-dev
 .PHONY: setup-dev
-setup-dev: ${PIP_LOG} ${PRECOMMIT_DST}
+setup-dev: venv ${PRECOMMIT_DST}
 
 .PHONY: lint
 lint: setup-dev
@@ -25,4 +28,4 @@ lint: setup-dev
 
 .PHONY: clean
 clean:
-	rm -rf src/*.pyc src/__pycache__ .mypy_cache ${VENV} ${PIP_LOG}
+	rm -rf src/*.pyc src/__pycache__ .mypy_cache ./venv

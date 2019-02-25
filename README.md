@@ -53,3 +53,4 @@ Running locally like above is fine, but make sure your changes work via `check.s
 * `make setup-dev` sets you up for Great Success. Call this whenever you need more success in your life. Or more up-to-date dependencies.
 * Run `make lint` to format, lint, and type-check code.
 * `make clean` does what it says on the box.
+* `make upgrade-dependencies` upgrades the Python dependencies used in the project. This should be Done Periodically (TM).
